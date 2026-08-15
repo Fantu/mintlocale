@@ -2,7 +2,8 @@ Source: mintlocale
 Section: admin
 Priority: optional
 Maintainer: Clement Lefebvre <root@linuxmint.com>
-Build-Depends: debhelper-compat (= 13)
+Build-Depends: debhelper-compat (= 13),
+               dh-sequence-python3
 Standards-Version: 3.9.5
 Homepage: https://github.com/linuxmint/mintlocale
 
@@ -22,7 +23,8 @@ Depends: python3,
          iso-flag-png,
          locales,
          pkexec,
-         ${misc:Depends}
+         ${misc:Depends},
+         ${python3:Depends}
 Description: language and input method selection tool
  mintlocale lets users pick the language of their desktop session and the
  regional and time formats to go with it, add or remove the locales
