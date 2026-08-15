@@ -1,11 +1,31 @@
-Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: mintlocale
 Upstream-Contact: Clement Lefebvre <root@linuxmint.com>
 Source: https://github.com/linuxmint/mintlocale
 
 Files: *
-Copyright: 2014 Clement Lefebvre <root@linuxmint.com>
+Copyright: 2014-2026 Clement Lefebvre <root@linuxmint.com>
 License: GPL-2+
+
+Files: usr/lib/linuxmint/mintlocale/ImConfig/*
+Copyright: 2012-2014 Canonical Ltd.
+           2016 Clement Lefebvre <root@linuxmint.com>
+License: GPL-2+
+Comment: Taken from Ubuntu's language-selector, which ships the same code as
+ LanguageSelector/ImConfig.py, and turned into a package of its own. The
+ header names no version of the licence, it only says "Released under the
+ GPL"; the language-selector packaging distributes the file as GPL-2+.
+
+Files: usr/share/linuxmint/mintlocale/language_packs
+Copyright: Canonical Ltd.
+           2016-2024 Clement Lefebvre <root@linuxmint.com>
+License: GPL-2+
+Comment: Derived from data/pkg_depends of Ubuntu's language-selector, as the
+ file itself states, and its description of the format is copied verbatim.
+
+License: GPL-2+
+ SPDX "GPL-2.0-or-later": https://spdx.org/licenses/GPL-2.0-or-later.html
+ .
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation; either version 2 of the License, or
@@ -17,4 +37,4 @@ License: GPL-2+
  GNU General Public License for more details.
  .
  On Debian systems, the complete text of the GNU General
- Public License can be found in `/usr/share/common-licenses/GPL'.
+ Public License can be found in `/usr/share/common-licenses/GPL-2'.
