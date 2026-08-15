@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Clement Lefebvre <root@linuxmint.com>
 Build-Depends: debhelper-compat (= 13)
 Standards-Version: 3.9.5
+Homepage: https://github.com/linuxmint/mintlocale
 
 Package: mintlocale
 Architecture: all
