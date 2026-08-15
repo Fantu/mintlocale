@@ -23,5 +23,11 @@ Depends: python3,
          locales,
          pkexec,
          ${misc:Depends}
-Description: Language selection tool
- Locale selection.
+Description: language and input method selection tool
+ mintlocale lets users pick the language of their desktop session and the
+ regional and time formats to go with it, add or remove the locales
+ installed on the system, and install the language packs, spell checkers
+ and translations available for the languages they use.
+ .
+ It also provides a separate tool to select and configure the input method
+ framework used for languages that need one.
