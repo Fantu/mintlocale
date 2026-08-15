@@ -20,6 +20,7 @@ Depends: python3,
          gir1.2-xapp-1.0,
          im-config (>= 0.23-1),
          iso-flag-png,
+         locales,
          pkexec,
          ${misc:Depends}
 Description: Language selection tool
