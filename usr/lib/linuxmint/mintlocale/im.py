@@ -19,8 +19,13 @@ gi.require_version('AccountsService', '1.0')
 gi.require_version('XApp', '1.0')
 from gi.repository import Gtk, GObject, Gdk, XApp
 
-import aptkit.simpleclient
 from ImConfig.ImConfig import ImConfig
+
+try:
+    import aptkit.simpleclient as apt_backend
+except ImportError:
+    # Distributions without aptkit, such as Debian, use PackageKit instead
+    import pkclient as apt_backend
 
 # i18n
 APP = 'mintlocale'
@@ -38,7 +43,7 @@ class IMLanguage():
         self.app = app
         self.packages = []
         self.missing_packages = []
-        self.apt = aptkit.simpleclient.SimpleAPTClient(self.app.window)
+        self.apt = apt_backend.SimpleAPTClient(self.app.window)
         self.button = button
         self.button.connect('clicked', self.install)
         self.button.set_sensitive(False)
