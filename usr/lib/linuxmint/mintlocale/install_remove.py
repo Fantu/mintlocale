@@ -3,7 +3,6 @@
 import os
 import gettext
 import apt_pkg
-import aptkit.simpleclient
 import subprocess
 import locale
 
@@ -12,6 +11,12 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf
 
 import localegen
+
+try:
+    import aptkit.simpleclient as apt_backend
+except ImportError:
+    # Distributions without aptkit, such as Debian, use PackageKit instead
+    import pkclient as apt_backend
 
 # i18n
 APP = 'mintlocale'
@@ -98,7 +103,7 @@ class MintLocale:
 
         self.build_lang_list(refresh_cache=False)
 
-        self.apt = aptkit.simpleclient.SimpleAPTClient(self.window)
+        self.apt = apt_backend.SimpleAPTClient(self.window)
 
     def data_func_surface(self, column, cell, model, iter_, *args):
         pixbuf = model.get_value(iter_, 2)
