@@ -2,13 +2,17 @@ Source: mintlocale
 Section: admin
 Priority: optional
 Maintainer: Clement Lefebvre <root@linuxmint.com>
-Build-Depends: debhelper (>= 9)
-Standards-Version: 3.9.5
+Build-Depends: debhelper-compat (= 13),
+               dh-sequence-python3
+Standards-Version: 4.7.0
+Homepage: https://github.com/linuxmint/mintlocale
 
 Package: mintlocale
 Architecture: all
 Depends: python3,
+         python3-apt,
          python3-gi,
+         accountsservice,
          aptkit,
          gir1.2-accountsservice-1.0,
          gir1.2-gdkpixbuf-2.0,
@@ -17,6 +21,15 @@ Depends: python3,
          gir1.2-xapp-1.0,
          im-config (>= 0.23-1),
          iso-flag-png,
-         ${misc:Depends}
-Description: Language selection tool
- Locale selection.
+         locales,
+         pkexec,
+         ${misc:Depends},
+         ${python3:Depends}
+Description: language and input method selection tool
+ mintlocale lets users pick the language of their desktop session and the
+ regional and time formats to go with it, add or remove the locales
+ installed on the system, and install the language packs, spell checkers
+ and translations available for the languages they use.
+ .
+ It also provides a separate tool to select and configure the input method
+ framework used for languages that need one.

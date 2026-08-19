@@ -2,3 +2,6 @@
 
 %:
 	dh ${@}
+
+override_dh_python3:
+	dh_python3 usr/lib/linuxmint/mintlocale
