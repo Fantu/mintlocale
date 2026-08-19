@@ -1,3 +1,19 @@
+mintlocale (1.6.7) alfa; urgency=medium
+
+  [ Michael Webster ]
+  * .github: Add stale workflow.
+  * Clean up python deprecations.
+  * input-methods: Install fcitx5 packages, drop fcitx4. (#96)
+  * im.py: Call GLib.set_prgname() earlier.
+
+  [ Clement Lefebvre ]
+  * Set icon with GLib.set_prgname()
+
+  [ Fabio Tavares Leitão ]
+  * install_remove: avoid redundant apt cache init on startup (#95)
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed, 19 Aug 2026 15:03:58 +0200
+
 mintlocale (1.6.6) zena; urgency=medium
 
   * im: Sort list of missing pkgs in tooltip text
