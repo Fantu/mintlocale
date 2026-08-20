@@ -33,7 +33,7 @@ gettext.bindtextdomain(APP, LOCALE_DIR)
 gettext.textdomain(APP)
 _ = gettext.gettext
 
-FLAG_PATH = "/usr/share/iso-flag-png/%s.png"
+FLAG_PATH = "/usr/share/iso-flags-png-320x240/%s.png"
 FLAG_SIZE = 22
 BUTTON_FLAG_SIZE = 22
 
