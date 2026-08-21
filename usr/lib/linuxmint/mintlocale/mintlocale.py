@@ -744,87 +744,62 @@ class MintLocale:
 
         return True
 
-    def set_pam_environment(self):
+    def get_locale_variables(self):
         shortlocale = self.current_language
         if "." in self.current_language:
             shortlocale = self.current_language.split(".")[0]
 
-        if os.path.exists(self.pam_environment_path):
+        variables = {}
+        for lc_variable in ['LC_NUMERIC', 'LC_MONETARY', 'LC_PAPER', 'LC_NAME', 'LC_ADDRESS', 'LC_TELEPHONE', 'LC_MEASUREMENT', 'LC_IDENTIFICATION']:
+            variables[lc_variable] = self.current_region
+        variables['LC_TIME'] = self.current_time
+        variables['PAPERSIZE'] = "a4"
+        variables['LANGUAGE'] = shortlocale
+        variables['LANG'] = self.current_language
+        return variables
 
-            # Replace values for present fields
-            for lc_variable in ['LC_NUMERIC', 'LC_MONETARY', 'LC_PAPER', 'LC_NAME', 'LC_ADDRESS', 'LC_TELEPHONE', 'LC_MEASUREMENT', 'LC_IDENTIFICATION']:
-                os.system("sed -i 's/^%s=.*/%s=%s/g' %s" % (lc_variable, lc_variable, self.current_region, self.pam_environment_path))
-            for lc_variable in ['LANG']:
-                os.system("sed -i 's/^%s=.*/%s=%s/g' %s" % (lc_variable, lc_variable, self.current_language, self.pam_environment_path))
-            for lc_variable in ['LC_TIME']:
-                os.system("sed -i 's/^%s=.*/%s=%s/g' %s" % (lc_variable, lc_variable, self.current_time, self.pam_environment_path))
-            for lc_variable in ['LANGUAGE']:
-                os.system("sed -i 's/^%s=.*/%s=%s/g' %s" % (lc_variable, lc_variable, shortlocale, self.pam_environment_path))
+    def write_env_file(self, path, variables, prefix="", dropped=()):
+        lines = []
+        if os.path.exists(path):
+            with open(path, 'r', encoding='utf-8') as env_file:
+                lines = env_file.read().splitlines()
 
-            # Check missing fields
-            with open(self.pam_environment_path, 'r', encoding='utf-8') as file:
-                content = file.read()
-
-            for lc_variable in ['LC_NUMERIC', 'LC_MONETARY', 'LC_PAPER', 'LC_NAME', 'LC_ADDRESS', 'LC_TELEPHONE', 'LC_MEASUREMENT', 'LC_IDENTIFICATION']:
-                if not (("%s=" % lc_variable) in content or ("%s =" % lc_variable) in content):
-                    os.system("echo '%s=%s' >> %s" % (lc_variable, self.current_region, self.pam_environment_path))
-            if not ("LC_TIME=" in content or "LC_TIME =" in content):
-                os.system("echo 'LC_TIME=%s' >> %s" % (self.current_time, self.pam_environment_path))
-
-            if ("XDG_SEAT_PATH" in os.environ):
-                # LightDM
-                if not ("PAPERSIZE=" in content or "PAPERSIZE =" in content):
-                    os.system("echo 'PAPERSIZE=a4' >> %s" % self.pam_environment_path)
-                if not ("LANGUAGE=" in content or "LANGUAGE =" in content):
-                    os.system("echo 'LANGUAGE=%s' >> %s" % (shortlocale, self.pam_environment_path))
-                if not ("LANG=" in content or "LANG =" in content):
-                    os.system("echo 'LANG=%s' >> %s" % (self.current_language, self.pam_environment_path))
+        content = []
+        written = []
+        for line in lines:
+            name = line.split("=")[0].strip()
+            if name.startswith("export "):
+                name = name[len("export "):].strip()
+            if name in dropped:
+                continue
+            if name in variables:
+                content.append("%s%s=%s" % (prefix, name, variables[name]))
+                written.append(name)
             else:
-                # MDM
-                for lc_variable in ['LANGUAGE', 'LANG']:
-                    os.system("sed -i '/^%s=.*/d' %s" % (lc_variable, self.pam_environment_path))
+                content.append(line)
 
-        else:
-            if ("XDG_SEAT_PATH" in os.environ):
-                # LightDM
-                os.system("sed -e 's/$locale/%s/g' -e 's/$shortlocale/%s/g' -e 's/$region/%s/g' -e 's/$time/%s/g' /usr/share/linuxmint/mintlocale/templates/lightdm_pam_environment.template > %s" % (self.current_language, shortlocale, self.current_region, self.current_time, self.pam_environment_path))
-            else:
-                # MDM
-                os.system("sed -e 's/$locale/%s/g' -e 's/$region/%s/g' -e 's/$time/%s/g' /usr/share/linuxmint/mintlocale/templates/mdm_pam_environment.template > %s" % (self.current_language, self.current_region, self.current_time, self.pam_environment_path))
+        for name, value in variables.items():
+            if name not in written:
+                content.append("%s%s=%s" % (prefix, name, value))
+
+        with open(path, 'w', encoding='utf-8') as env_file:
+            env_file.write("\n".join(content) + "\n")
+
+    def set_pam_environment(self):
+        variables = self.get_locale_variables()
+        dropped = ()
+        if "XDG_SEAT_PATH" not in os.environ:
+            # MDM takes the language from .dmrc, having it here as well confuses it
+            dropped = ('LANGUAGE', 'LANG')
+            for lc_variable in dropped:
+                del variables[lc_variable]
+
+        self.write_env_file(self.pam_environment_path, variables, dropped=dropped)
 
     def set_xsessionrc(self):
-        shortlocale = self.current_language
-        if "." in self.current_language:
-            shortlocale = self.current_language.split(".")[0]
-
-        if not os.path.exists(self.xsessionrc_path):
-            os.mknod(self.xsessionrc_path)
-
-        # Replace values for present fields
-        for lc_variable in ['LC_NUMERIC', 'LC_MONETARY', 'LC_PAPER', 'LC_NAME', 'LC_ADDRESS', 'LC_TELEPHONE', 'LC_MEASUREMENT', 'LC_IDENTIFICATION']:
-            os.system("sed -i 's/^%s=.*/%s=%s/g' %s" % (lc_variable, lc_variable, self.current_region, self.xsessionrc_path))
-        for lc_variable in ['LANG']:
-            os.system("sed -i 's/^%s=.*/%s=%s/g' %s" % (lc_variable, lc_variable, self.current_language, self.xsessionrc_path))
-        for lc_variable in ['LC_TIME']:
-            os.system("sed -i 's/^%s=.*/%s=%s/g' %s" % (lc_variable, lc_variable, self.current_time, self.xsessionrc_path))
-        for lc_variable in ['LANGUAGE']:
-            os.system("sed -i 's/^%s=.*/%s=%s/g' %s" % (lc_variable, lc_variable, shortlocale, self.xsessionrc_path))
-
-        # Check missing fields
-        with open(self.xsessionrc_path, 'r', encoding='utf-8') as file:
-            content = file.read()
-
-        for lc_variable in ['LC_NUMERIC', 'LC_MONETARY', 'LC_PAPER', 'LC_NAME', 'LC_ADDRESS', 'LC_TELEPHONE', 'LC_MEASUREMENT', 'LC_IDENTIFICATION']:
-            if not (("%s=" % lc_variable) in content or ("%s =" % lc_variable) in content):
-                os.system("echo '%s=%s' >> %s" % (lc_variable, self.current_region, self.xsessionrc_path))
-        if not ("LC_TIME=" in content or "LC_TIME =" in content):
-            os.system("echo 'LC_TIME=%s' >> %s" % (self.current_time, self.xsessionrc_path))
-        if not ("PAPERSIZE=" in content or "PAPERSIZE =" in content):
-            os.system("echo 'PAPERSIZE=a4' >> %s" % self.xsessionrc_path)
-        if not ("LANGUAGE=" in content or "LANGUAGE =" in content):
-            os.system("echo 'LANGUAGE=%s' >> %s" % (shortlocale, self.xsessionrc_path))
-        if not ("LANG=" in content or "LANG =" in content):
-            os.system("echo 'LANG=%s' >> %s" % (self.current_language, self.xsessionrc_path))
+        # Xsession sources this file without "set -a", so plain assignments would
+        # stay shell local and never reach the session
+        self.write_env_file(self.xsessionrc_path, self.get_locale_variables(), prefix="export ")
 
 if __name__ == "__main__":
 
