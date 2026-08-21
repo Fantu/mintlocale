@@ -16,6 +16,8 @@ except ImportError:
     # Distributions without aptkit, such as Debian, use PackageKit instead
     import pkclient as apt_backend
 
+import localegen
+
 # i18n
 APP = 'mintlocale'
 LOCALE_DIR = "/usr/share/linuxmint/locale"
@@ -283,10 +285,10 @@ class MintLocale:
         self.build_lang_list()
 
     def button_remove_clicked(self, button):
-        locale = self.selected_language.replace("UTF-8", "utf8")
-        os.system("localedef --delete-from-archive %s" % locale)
+        print("Removing locale %s" % self.selected_language)
+        localegen.remove_locale(self.selected_language)
         # If there are no more locales using the language, remove the language packs
-        (language_code, country_code, language_label) = self.split_locale(locale)
+        (language_code, country_code, language_label) = self.split_locale(self.selected_language.replace("UTF-8", "utf8"))
         num_locales = subprocess.check_output("localedef --list-archive | grep %s_ | wc -l" % language_code, shell=True)
         num_locales = num_locales.decode('utf-8').strip()
         # Check if the language packs are installed
