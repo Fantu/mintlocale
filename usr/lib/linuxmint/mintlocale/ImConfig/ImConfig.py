@@ -11,23 +11,62 @@ import subprocess
 class ImConfig(object):
 
     def __init__(self):
-        pass
+        # im-config 1.0 renamed the options this was written against: -l, -l -a,
+        # -m and -n became -i, -p, -r and -w, and the old ones are now silently
+        # ignored. Only the new one answers -r with a report, so that tells the
+        # two apart, whatever the version number says.
+        self.legacy = 'IM framework' not in self.run(['-r'])
+
+    def run(self, args):
+        # The locale is left alone on purpose: im-config picks the framework a
+        # language needs out of LC_CTYPE, so a forced LC_ALL would change the
+        # answer for the CJK locales. The lines parsed below are not translated.
+        try:
+            return subprocess.check_output(['im-config'] + args, stderr=subprocess.DEVNULL).decode()
+        except (OSError, subprocess.SubprocessError):
+            return ''
 
     def available(self):
         return os.path.exists('/usr/bin/im-config')
 
     def getAvailableInputMethods(self):
-        inputMethods = subprocess.check_output(['im-config', '-l']).decode().split()
+        inputMethods = self.run(['-l'] if self.legacy else ['-i']).split()
         return sorted(inputMethods)
 
     def getAllInputMethods(self):
-        inputMethods = subprocess.check_output(['im-config', '-l', '-a']).decode().split()
+        inputMethods = self.run(['-l', '-a'] if self.legacy else ['-p']).split()
         return sorted(inputMethods)
 
+    def getReportedConfig(self):
+        """The three values "im-config -m" used to give, out of the "im-config -r" report"""
+        userConfig = 'missing'
+        autoConfig = ''
+        setConfig = ''
+        configured = False
+        for line in self.run(['-r']).splitlines():
+            if line.startswith('Configuration file:'):
+                configured = '(removed)' not in line
+            elif line.startswith('IM framework (set):'):
+                setConfig = line.split(':', 1)[1].strip()
+            elif line.startswith('IM framework (auto):'):
+                autoConfig = line.split(':', 1)[1].strip()
+
+        if configured and setConfig != 'auto':
+            userConfig = setConfig
+
+        # The report does not carry the mode of /etc/default/im-config, and the
+        # automatic value is the one wanted for every mode but 'cjkv'
+        return ('default', userConfig, autoConfig)
+
     def getCurrentInputMethod(self):
-        # Output from the comamand "im-config -m" is different between Trusty (17.x) and Xenial (18.x), but the first three values are the same
-        splits = subprocess.check_output(['im-config', '-m']).decode().split()
-        (systemConfig, userConfig, autoConfig) = splits[0:3]
+        if self.legacy:
+            # Output from the comamand "im-config -m" is different between Trusty (17.x) and Xenial (18.x), but the first three values are the same
+            splits = self.run(['-m']).split()
+            if len(splits) < 3:
+                splits = ['default', 'missing', '']
+            (systemConfig, userConfig, autoConfig) = splits[0:3]
+        else:
+            (systemConfig, userConfig, autoConfig) = self.getReportedConfig()
 
         if userConfig != 'missing':
             return userConfig
@@ -56,7 +95,7 @@ class ImConfig(object):
         return system_conf
 
     def setInputMethod(self, im):
-        subprocess.call(['im-config', '-n', im])
+        subprocess.call(['im-config', '-n' if self.legacy else '-w', im])
 
 if __name__ == '__main__':
     im = ImConfig()
