@@ -34,6 +34,7 @@ gettext.textdomain(APP)
 _ = gettext.gettext
 
 FLAG_PATH = "/usr/share/iso-flag-png/%s.png"
+PAPERSIZE_PATH = "/etc/papersize"
 FLAG_SIZE = 22
 BUTTON_FLAG_SIZE = 22
 
@@ -444,6 +445,10 @@ class MintLocale:
         print("Setting system locale: language '%s', region '%s', time '%s'" % (self.current_language, self.current_region, self.current_time))
 
         if os.path.isdir("/run/systemd/system"):
+            # The paper size is not a locale variable and localed has nowhere to
+            # put it, so it goes on its own and asks for its own authentication
+            self.set_system_paper_size()
+
             # localed refuses a LANGUAGE holding the usual "it_IT:it" fallback
             # list, and gettext drops the territory by itself anyway
             variables = {'LANG': self.current_language,
@@ -461,8 +466,20 @@ class MintLocale:
                 GLib.Variant('(asb)', (["%s=%s" % item for item in variables.items()], True)),
                 None, Gio.DBusCallFlags.NONE, GLib.MAXINT32, None, self.on_system_locale_set, None)
         else:
-            subprocess.call(['pkexec', 'set-default-locale', self.locale_path, self.current_language, self.current_region, self.current_time])
+            subprocess.call(['pkexec', 'set-default-locale', self.locale_path, self.current_language, self.current_region, self.current_time, self.get_paper_size()])
             self.set_system_locale()
+
+    def set_system_paper_size(self):
+        paper_size = self.get_paper_size()
+        try:
+            with open(PAPERSIZE_PATH, 'r', encoding='utf-8') as paper_size_file:
+                # Nothing to change means nobody has to authenticate anything
+                if paper_size_file.read().strip().lower() == paper_size:
+                    return
+        except OSError:
+            return
+
+        subprocess.call(['pkexec', 'set-default-locale', '--paper-size-only', paper_size])
 
     def on_system_locale_set(self, connection, result, data):
         try:
