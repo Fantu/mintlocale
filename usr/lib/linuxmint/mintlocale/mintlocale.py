@@ -789,12 +789,22 @@ class MintLocale:
         variables['LC_TIME'] = self.current_time
         variables['LANGUAGE'] = shortlocale
         variables['LANG'] = self.current_language
+        variables['PAPERSIZE'] = self.get_paper_size()
         return variables
 
-    def get_locale_defaults(self):
-        return {'PAPERSIZE': "a4"}
+    def get_paper_size(self):
+        environment = dict(os.environ, LC_PAPER=self.current_region)
+        # LC_ALL would answer for the current locale instead of the region
+        environment.pop("LC_ALL", None)
+        try:
+            # Letter is the only size glibc measures 279 by 216 millimetres
+            height, width = subprocess.check_output(['locale', 'height', 'width'], env=environment, stderr=subprocess.DEVNULL).decode().split()
+        except (OSError, subprocess.CalledProcessError, ValueError):
+            return "a4"
 
-    def write_env_file(self, path, variables, defaults, prefix="", dropped=()):
+        return "letter" if (height, width) == ("279", "216") else "a4"
+
+    def write_env_file(self, path, variables, prefix="", dropped=()):
         lines = []
         if os.path.exists(path):
             with open(path, 'r', encoding='utf-8') as env_file:
@@ -810,15 +820,11 @@ class MintLocale:
                 continue
             if name in variables:
                 content.append("%s%s=%s" % (prefix, name, variables[name]))
-            elif name in defaults:
-                # A default only fills the variable in, the value already there is the user's
-                value = line.split("=", 1)[1].strip() if "=" in line else defaults[name]
-                content.append("%s%s=%s" % (prefix, name, value))
             else:
                 content.append(line)
             present.append(name)
 
-        for name, value in list(variables.items()) + list(defaults.items()):
+        for name, value in variables.items():
             if name not in present:
                 content.append("%s%s=%s" % (prefix, name, value))
 
@@ -834,12 +840,12 @@ class MintLocale:
             for lc_variable in dropped:
                 del variables[lc_variable]
 
-        self.write_env_file(self.pam_environment_path, variables, self.get_locale_defaults(), dropped=dropped)
+        self.write_env_file(self.pam_environment_path, variables, dropped=dropped)
 
     def set_xsessionrc(self):
         # Xsession sources this file without "set -a", so plain assignments would
         # stay shell local and never reach the session
-        self.write_env_file(self.xsessionrc_path, self.get_locale_variables(), self.get_locale_defaults(), prefix="export ")
+        self.write_env_file(self.xsessionrc_path, self.get_locale_variables(), prefix="export ")
 
 if __name__ == "__main__":
 
