@@ -16,7 +16,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('AccountsService', '1.0')
 gi.require_version('XApp', '1.0')
-from gi.repository import Gtk, AccountsService, GLib, Gdk, GdkPixbuf, XApp
+from gi.repository import Gtk, AccountsService, Gio, GLib, Gdk, GdkPixbuf, XApp
 
 
 # Used to detect Debian derivatives (we don't want to show APT features in other distros)
@@ -442,9 +442,36 @@ class MintLocale:
 
     def button_system_language_clicked(self, button):
         print("Setting system locale: language '%s', region '%s', time '%s'" % (self.current_language, self.current_region, self.current_time))
-        subprocess.call(['pkexec', 'set-default-locale', self.locale_path, self.current_language, self.current_region, self.current_time])
+
+        if os.path.isdir("/run/systemd/system"):
+            # localed refuses a LANGUAGE holding the usual "it_IT:it" fallback
+            # list, and gettext drops the territory by itself anyway
+            variables = {'LANG': self.current_language,
+                         'LANGUAGE': self.current_language.replace(".UTF-8", ""),
+                         'LC_TIME': self.current_time}
+            for lc_variable in ['LC_NUMERIC', 'LC_MONETARY', 'LC_PAPER', 'LC_IDENTIFICATION', 'LC_NAME', 'LC_ADDRESS', 'LC_TELEPHONE', 'LC_MEASUREMENT']:
+                variables[lc_variable] = self.current_region
+
+            # Called asynchronously and without a timeout because localed also
+            # generates the locales which are missing, which takes as long as it
+            # takes: a minute is not unusual with a good number of them installed
+            self.locale_system_wide_button.set_sensitive(False)
+            Gio.bus_get_sync(Gio.BusType.SYSTEM, None).call(
+                'org.freedesktop.locale1', '/org/freedesktop/locale1', 'org.freedesktop.locale1', 'SetLocale',
+                GLib.Variant('(asb)', (["%s=%s" % item for item in variables.items()], True)),
+                None, Gio.DBusCallFlags.NONE, GLib.MAXINT32, None, self.on_system_locale_set, None)
+        else:
+            subprocess.call(['pkexec', 'set-default-locale', self.locale_path, self.current_language, self.current_region, self.current_time])
+            self.set_system_locale()
+
+    def on_system_locale_set(self, connection, result, data):
+        try:
+            connection.call_finish(result)
+        except GLib.Error as error:
+            print("Could not set the system locale: %s" % error.message)
+
+        self.locale_system_wide_button.set_sensitive(True)
         self.set_system_locale()
-        pass
 
     def button_install_remove_clicked(self, button):
         os.system("pkexec add-remove-locales")
@@ -482,6 +509,13 @@ class MintLocale:
                     var_name = line[:eq_index].strip()
                     value = line[eq_index + 1:].strip()
                     vars[var_name] = value
+
+            # An unset category follows LANG, and localed drops the ones which
+            # are identical to it instead of writing them out
+            for lc_variable in ['LC_NUMERIC', 'LC_TIME']:
+                if lc_variable not in vars and "LANG" in vars:
+                    vars[lc_variable] = vars['LANG']
+
             if "LANG" in vars:
                 locale = vars['LANG'].replace('"', '').replace("'", "")
                 locale = locale.split(".")[0].strip()
